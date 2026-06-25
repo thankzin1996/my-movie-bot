@@ -3,6 +3,7 @@ import telebot
 import google.generativeai as genai
 from gtts import gTTS
 
+# API Keys
 api_key = os.environ.get("GEMINI_API_KEY")
 token = os.environ.get("TELEGRAM_TOKEN")
 
@@ -20,12 +21,18 @@ def handle_message(message):
         
         bot.send_message(message.chat.id, "🎙️ အသံဖိုင် ပြောင်းနေပါပြီ...")
         tts = gTTS(text=script, lang='my')
-        audio_path = "/tmp/recap_audio.mp3"
+        
+        # /tmp/ ကို သေချာသုံးပေးထားပါတယ်
+        audio_path = "/tmp/recap.mp3"
         tts.save(audio_path)
         
         with open(audio_path, 'rb') as audio:
             bot.send_audio(message.chat.id, audio)
-        os.remove(audio_path)
+        
+        # ဖိုင်ကို ဖျက်ပေးပါ
+        if os.path.exists(audio_path):
+            os.remove(audio_path)
+            
     except Exception as e:
         bot.reply_to(message, f"Error: {e}")
 
