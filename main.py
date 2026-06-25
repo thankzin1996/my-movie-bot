@@ -1,32 +1,32 @@
 import os
 import telebot
 import google.generativeai as genai
+from gtts import gTTS
 
-# Secrets ထဲက Key တွေကို ခေါ်ယူခြင်း
 api_key = os.environ.get("GEMINI_API_KEY")
 token = os.environ.get("TELEGRAM_TOKEN")
 
-# API ချိတ်ဆက်မှုကို စစ်ဆေးခြင်း
-if not api_key or not token:
-    print("Error: Secrets ထဲတွင် Key များ မရှိပါ။ ကျေးဇူးပြု၍ စစ်ဆေးပါ။")
-else:
-    genai.configure(api_key=api_key)
-    model = genai.GenerativeModel('gemini-1.5-pro')
-    bot = telebot.TeleBot(token)
+genai.configure(api_key=api_key)
+model = genai.GenerativeModel('gemini-1.5-pro')
+bot = telebot.TeleBot(token)
 
-    @bot.message_handler(commands=['start'])
-    def start(message):
-        bot.reply_to(message, "Bot အဆင်သင့်ဖြစ်ပါပြီ! ရုပ်ရှင်နာမည် တစ်ခုခု ရိုက်ပို့ပေးပါ။")
+@bot.message_handler(func=lambda message: True)
+def handle_message(message):
+    bot.reply_to(message, "⏳ ဇာတ်ညွှန်းရေးနေပါပြီ...")
+    try:
+        response = model.generate_content(f"Write a short movie recap in Burmese for: {message.text}")
+        script = response.text
+        bot.reply_to(message, script)
+        
+        bot.send_message(message.chat.id, "🎙️ အသံဖိုင် ပြောင်းနေပါပြီ...")
+        tts = gTTS(text=script, lang='my')
+        audio_path = "/tmp/recap_audio.mp3"
+        tts.save(audio_path)
+        
+        with open(audio_path, 'rb') as audio:
+            bot.send_audio(message.chat.id, audio)
+        os.remove(audio_path)
+    except Exception as e:
+        bot.reply_to(message, f"Error: {e}")
 
-    @bot.message_handler(func=lambda message: True)
-    def handle_message(message):
-        try:
-            bot.reply_to(message, "ဇာတ်ညွှန်းရေးနေပါပြီ...")
-            response = model.generate_content(f"Write a movie recap in Burmese for: {message.text}")
-            bot.reply_to(message, response.text)
-        except Exception as e:
-            bot.reply_to(message, f"Error: {e}")
-
-    print("Bot စတင်အလုပ်လုပ်နေပါပြီ...")
-    bot.polling(none_stop=True)
-  
+bot.polling()
